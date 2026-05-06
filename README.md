@@ -7,7 +7,7 @@
 # online
 https://nelikkkl.github.io/Low-poly-plane/
 
-### музыка
+### музыка 🎼
 вся музыка в игре не имеет АП
 
 ### сборка ⛳
