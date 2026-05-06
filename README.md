@@ -21,4 +21,4 @@
 ![screen3](screen3.jpg)
 
 ### Лицензия 📄
-этот проект под лицензией [MIT]()
+этот проект под лицензией [MIT](https://github.com/NelikKKL/Low-poly-plane/blob/main/LICENSE)
