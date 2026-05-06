@@ -4,6 +4,9 @@
 
 если вы не хотите собирать игру то скачайте из репризитория plane-single.html
 
+# online
+https://nelikkkl.github.io/Low-poly-plane/
+
 ### музыка
 вся музыка в игре не имеет АП
 
