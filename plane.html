@@ -839,6 +839,7 @@
         let planeTargetY = 2;
         let gameSpeed = 0.15;
         let rockSpawnTimer = 0;
+        let levelStartTime = 0;
         let invulnerableTime = 0;
         let currentZone = ZONE_DESERT;
         let zoneLabelTimer = 0;
@@ -1030,6 +1031,7 @@
             snowZoneEntered = false;
             poppyZoneEntered = false;
             poppyFieldGroup.visible = false;
+            levelStartTime = Date.now();
             updateZoneVisuals(0, 0);
             removeSnow();
             updateHearts();
@@ -1125,7 +1127,8 @@
                     ? 120 / (effectiveSpeed * 5)
                     : 100 / (effectiveSpeed * 5);
 
-                if (rockSpawnTimer > spawnInterval) {
+                const timeSinceStart = (Date.now() - levelStartTime) / 1000;
+                if (rockSpawnTimer > spawnInterval && timeSinceStart >= 5) {
                     spawnObstacle(currentZone);
                     rockSpawnTimer = 0;
                 }
@@ -1356,6 +1359,7 @@
                 } else {
                     gameStarted = true;
                     window.gameStarted = true;
+                    levelStartTime = Date.now();
                 }
                 loop.running = false;
 
