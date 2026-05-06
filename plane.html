@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="favicon.png" type="image/x-icon">
+    <title>Low Poly Plane</title>
+    <style>
+        @font-face {
+            font-family: 'Fredoka';
+            src: url('Fredoka-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #ded2b8;
+            font-family: 'Fredoka', 'Fredoka One', cursive, sans-serif;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: #5a4a3b;
+            font-size: 24px;
+            z-index: 10;
+            transition: color 1s ease;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #hearts {
+            color: #ba3c31;
+            letter-spacing: 2px;
+        }
+
+        .distance-val {
+            color: #ba3c31;
+        }
+
+        #zone-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 48px;
+            color: #a8d8f0;
+            text-shadow: 0 2px 12px #4a8fc0, 0 0 2px #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 15;
+            transition: opacity 0.5s ease;
+            white-space: nowrap;
+        }
+        #zone-label.poppy-label {
+            color: #708744;
+            text-shadow: 0 2px 10px #3a5c2a, 0 0 3px #fff;
+        }
+        #zone-label .poppy-flower {
+            color: #c0392b;
+            text-shadow: none;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(222, 210, 184, 0.95);
+            padding: 30px 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: #ba3c31;
+            font-size: 32px;
+            display: none;
+            z-index: 20;
+            border: 4px solid #5a4a3b;
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        .go-btn {
+            display: block;
+            width: 100%;
+            margin-top: 14px;
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 20px;
+            color: #fff;
+            background: #ba3c31;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 28px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 0 #5a4a3b;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .go-btn:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 #5a4a3b; }
+        .go-btn:active { transform: translateY(2px);  box-shadow: 0 3px 0 #5a4a3b; }
+        .go-btn.secondary { background: #5a4a3b; box-shadow: 0 5px 0 #32221e; }
+        .go-btn.secondary:hover  { box-shadow: 0 7px 0 #32221e; }
+        .go-btn.secondary:active { box-shadow: 0 3px 0 #32221e; }
+
+        /* ====== КНОПКА ПАУЗЫ ====== */
+        #pause-btn {
+            position: absolute;
+            top: 88px;
+            right: 16px;
+            z-index: 30;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(222,210,184,0.88);
+            border: 2px solid #5a4a3b;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, transform 0.1s;
+            box-shadow: 0 3px 10px rgba(90,74,59,0.22);
+            padding: 0;
+        }
+        #pause-btn:hover  { background: rgba(222,210,184,1); transform: scale(1.08); }
+        #pause-btn:active { transform: scale(0.94); }
+        #pause-btn svg { display: block; }
+
+        /* ====== ОВЕРЛЕЙ ПАУЗЫ ====== */
+        #pause-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 25;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(90,74,59,0.45);
+            backdrop-filter: blur(3px);
+        }
+        #pause-overlay.active { display: flex; }
+        .pause-box {
+            background: rgba(222,210,184,0.97);
+            border: 4px solid #5a4a3b;
+            border-radius: 18px;
+            padding: 36px 50px;
+            text-align: center;
+            font-family: 'Fredoka', cursive, sans-serif;
+        }
+        .pause-title {
+            font-size: 42px;
+            color: #ba3c31;
+            text-shadow: 2px 2px 0 #5a4a3b;
+            letter-spacing: 3px;
+            margin-bottom: 24px;
+        }
+        .pause-btn {
+            display: block;
+            width: 220px;
+            margin: 10px auto 0;
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 22px;
+            color: #fff;
+            background: #ba3c31;
+            border: none;
+            border-radius: 50px;
+            padding: 13px 28px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 5px 0 #5a4a3b;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .pause-btn:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 #5a4a3b; }
+        .pause-btn:active { transform: translateY(2px);  box-shadow: 0 3px 0 #5a4a3b; }
+        .pause-btn.secondary { background: #5a4a3b; box-shadow: 0 5px 0 #32221e; }
+        .pause-btn.secondary:hover  { box-shadow: 0 7px 0 #32221e; }
+        .pause-btn.secondary:active { box-shadow: 0 3px 0 #32221e; }
+
+        /* ====== ГЛАВНОЕ МЕНЮ (3D overlay) ====== */
+        #main-menu {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            overflow: hidden;
+            transition: opacity 0.9s ease;
+        }
+        #main-menu.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #menu-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #menu-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .menu-title {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: clamp(56px, 13vw, 96px);
+            color: #ba3c31;
+            line-height: 0.95;
+            text-shadow: 4px 4px 0 #5a4a3b, -1px -1px 0 rgba(255,255,255,0.35);
+            letter-spacing: 3px;
+            text-align: center;
+            animation: titleDrop 0.9s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .menu-subtitle {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: clamp(16px, 3.5vw, 24px);
+            color: #5a4a3b;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin-top: 6px;
+            opacity: 0.75;
+            animation: titleDrop 0.9s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+        }
+        .menu-btn {
+            pointer-events: all;
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: clamp(22px, 5vw, 30px);
+            color: #fff;
+            background: #ba3c31;
+            border: none;
+            border-radius: 50px;
+            padding: 16px 58px;
+            cursor: pointer;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 7px 0 #5a4a3b, 0 12px 30px rgba(90,74,59,0.35);
+            transition: transform 0.12s, box-shadow 0.12s;
+            animation: btnAppear 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.4s both, btnPulse 2.4s ease-in-out infinite 1.2s;
+            margin-top: 40px;
+            position: relative;
+        }
+        .menu-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 55%);
+            border-radius: inherit;
+        }
+        .menu-btn:hover  { transform: translateY(-4px); box-shadow: 0 11px 0 #5a4a3b, 0 18px 35px rgba(90,74,59,0.38); }
+        .menu-btn:active { transform: translateY(3px);  box-shadow: 0 4px 0 #5a4a3b, 0 6px 14px rgba(90,74,59,0.22); }
+        .menu-hint {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: clamp(13px, 2.8vw, 17px);
+            color: #5a4a3b;
+            opacity: 0.6;
+            margin-top: 20px;
+            letter-spacing: 1px;
+            animation: btnAppear 0.7s ease 0.7s both;
+        }
+        @keyframes titleDrop {
+            from { transform: translateY(-55px) scale(0.75); opacity: 0; }
+            to   { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes btnAppear {
+            from { transform: translateY(30px) scale(0.8); opacity: 0; }
+            to   { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes btnPulse {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ГЛАВНОЕ МЕНЮ (3D) -->
+    <div id="main-menu">
+        <canvas id="menu-canvas"></canvas>
+        <div id="menu-overlay">
+            <div class="menu-title">LOW POLY</div>
+            <div class="menu-title" style="color:#5a4a3b; font-size:0.65em;">PLANE</div>
+            <div class="menu-subtitle">Sky Adventure</div>
+            <div id="menu-best" style="
+                font-family:'Fredoka',cursive,sans-serif;
+                font-size:clamp(16px,3.5vw,22px);
+                color:#ba3c31;
+                letter-spacing:3px;
+                margin-top:18px;
+                text-shadow:1px 1px 0 #5a4a3b;
+                min-height:1.5em;
+                animation:btnAppear 0.7s ease 0.3s both;
+            "></div>
+            <button class="menu-btn" id="start-btn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="vertical-align:middle;margin-right:10px;margin-bottom:2px">
+                    <polygon points="4,2 18,10 4,18" fill="white"/>
+                </svg>ИГРАТЬ
+            </button>
+            <div class="menu-hint">W / S  или  стрелки — управление</div>
+        </div>
+    </div>
+
+    <!-- АУДИО -->
+    <audio id="audio-menu" src="menu.mp3" loop></audio>
+    <audio id="audio-spin" src="spin.mp3" loop></audio>
+
+    <div id="ui">
+        <div class="row">
+            <div>LEVEL <span id="level-ui">1</span></div>
+            <div id="hearts"></div>
+        </div>
+        <div class="row">
+            <div>DISTANCE</div>
+            <div class="distance-val" id="dist-ui">0</div>
+        </div>
+    </div>
+
+    <div id="zone-label">* СНЕЖНАЯ ЗОНА ❄️ *</div>
+
+    <!-- КНОПКА ПАУЗЫ -->
+    <button id="pause-btn" title="Пауза">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="3" width="4" height="14" rx="1.5" fill="#5a4a3b"/>
+            <rect x="12" y="3" width="4" height="14" rx="1.5" fill="#5a4a3b"/>
+        </svg>
+    </button>
+
+    <!-- ОВЕРЛЕЙ ПАУЗЫ -->
+    <div id="pause-overlay">
+        <div class="pause-box">
+            <div class="pause-title">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" style="vertical-align:middle;margin-right:10px;margin-bottom:4px">
+                    <rect x="6" y="5" width="8" height="26" rx="3" fill="#ba3c31"/>
+                    <rect x="22" y="5" width="8" height="26" rx="3" fill="#ba3c31"/>
+                </svg>ПАУЗА
+            </div>
+            <button class="pause-btn" id="resume-btn">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;margin-right:8px;margin-bottom:2px">
+                    <polygon points="3,2 16,9 3,16" fill="white"/>
+                </svg>Продолжить
+            </button>
+            <button class="pause-btn secondary" id="pause-to-menu-btn">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;margin-right:8px;margin-bottom:2px">
+                    <rect x="2" y="9" width="14" height="7" rx="1.5" fill="white"/>
+                    <polygon points="9,1 16,8 2,8" fill="white"/>
+                </svg>В меню
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="game-over">
+        GAME OVER<br>
+        <span id="go-score" style="font-size:20px; color:#5a4a3b;"></span><br>
+        <span id="go-best"  style="font-size:18px; color:#ba3c31;"></span>
+        <button class="go-btn" id="go-menu-btn">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;margin-right:7px;margin-bottom:2px">
+                <rect x="2" y="9" width="14" height="7" rx="1.5" fill="white"/>
+                <polygon points="9,1 16,8 2,8" fill="white"/>
+            </svg>В меню
+        </button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script src="three.min.js"></script>
+
+    <script>
+        // --- ЗОНЫ ---
+        const ZONE_DESERT = 'desert';
+        const ZONE_SNOW   = 'snow';
+        const ZONE_POPPY  = 'poppy';
+        const SNOW_START  = 1000;
+        const POPPY_START = 2500;
+
+        // --- БАЗОВЫЕ НАСТРОЙКИ ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xded2b8);
+        scene.fog = new THREE.Fog(0xded2b8, 10, 45);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 12);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        // --- ОСВЕЩЕНИЕ ---
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x000000, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xded2b8, 0.6);
+        const shadowLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        shadowLight.position.set(10, 20, 10);
+        shadowLight.castShadow = true;
+        scene.add(hemisphereLight, ambientLight, shadowLight);
+
+        // --- ЦВЕТА ПО ЗОНАМ ---
+        const zoneColors = {
+            desert: {
+                bg:      new THREE.Color(0xded2b8),
+                fog:     new THREE.Color(0xded2b8),
+                sea:     0x6d8b82,
+                rock:    0xba3c31,
+                ui:      '#5a4a3b',
+                uiAccent:'#ba3c31'
+            },
+            snow: {
+                bg:      new THREE.Color(0xbbd8ef),
+                fog:     new THREE.Color(0xbbd8ef),
+                sea:     0x8ec5e8,
+                rock:    0x4a8fc0,
+                ui:      '#1a3a5c',
+                uiAccent:'#4a8fc0'
+            },
+            poppy: {
+                bg:      new THREE.Color(0xa8d8ea),
+                fog:     new THREE.Color(0xb8e0f0),
+                sea:     0x708744,
+                rock:    0xba3c31,
+                ui:      '#3a5c2a',
+                uiAccent:'#c0392b'
+            }
+        };
+
+        // --- МАТЕРИАЛЫ ---
+        const colors = { red: 0xba3c31, dark: 0x32221e, sea: 0x6d8b82 };
+        const matRed  = new THREE.MeshPhongMaterial({ color: colors.red,  flatShading: true });
+        const matDark = new THREE.MeshPhongMaterial({ color: colors.dark, flatShading: true });
+        const matSea  = new THREE.MeshPhongMaterial({ color: colors.sea,  flatShading: true });
+
+        // Снежные материалы
+        const matIce  = new THREE.MeshPhongMaterial({ color: 0x7ec8e3, flatShading: true, shininess: 80, specular: 0xffffff });
+        const matIceDark = new THREE.MeshPhongMaterial({ color: 0x3a7fbf, flatShading: true, shininess: 60 });
+        const matSnowRock = new THREE.MeshPhongMaterial({ color: 0x6fa8c9, flatShading: true });
+
+        // Маковое поле материалы
+        const matGrass     = new THREE.MeshPhongMaterial({ color: 0x708744, flatShading: true });
+        const matPoppyRed  = new THREE.MeshPhongMaterial({ color: 0xc0392b, flatShading: true });
+        const matPoppyDark = new THREE.MeshPhongMaterial({ color: 0x922b21, flatShading: true });
+        const matStem      = new THREE.MeshPhongMaterial({ color: 0x4a7c3f, flatShading: true });
+        const matFog8C     = new THREE.MeshPhongMaterial({
+            color: 0x8C6393,
+            flatShading: true,
+            transparent: true,
+            opacity: 0.45,
+            depthWrite: false
+        });
+
+        // --- САМОЛЕТ ---
+        const airplane = new THREE.Group();
+
+        const cockpit = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 1.2), matRed);
+        cockpit.castShadow = true;
+        airplane.add(cockpit);
+
+        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.8), matDark);
+        windowMesh.position.set(0.5, 0.8, 0);
+        airplane.add(windowMesh);
+
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 4.5), matRed);
+        wing.position.set(0.5, 0, 0);
+        wing.castShadow = true;
+        airplane.add(wing);
+
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.2), matRed);
+        tail.position.set(-1.8, 0.5, 0);
+        airplane.add(tail);
+
+        const tailWing = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 1.5), matRed);
+        tailWing.position.set(-1.8, 0.1, 0);
+        airplane.add(tailWing);
+
+        const propeller = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2), matDark);
+        propeller.position.set(2.1, 0, 0);
+        airplane.add(propeller);
+
+        const engine = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.6), matDark);
+        engine.position.set(2, 0, 0);
+        airplane.add(engine);
+
+        airplane.scale.set(0.6, 0.6, 0.6);
+        airplane.position.set(-1.5, 2, 0);
+        scene.add(airplane);
+
+        // --- ФОН (МОРЕ / СНЕГ) ---
+        const seaGeometry = new THREE.CylinderGeometry(40, 40, 100, 30, 10);
+        seaGeometry.rotateX(Math.PI / 2);
+
+        const posAttribute = seaGeometry.attributes.position;
+        for (let i = 0; i < posAttribute.count; i++) {
+            posAttribute.setY(i, posAttribute.getY(i) + (Math.random() * 1.5 - 0.75));
+        }
+
+        const sea = new THREE.Mesh(seaGeometry, matSea);
+        sea.position.set(0, -44, -5);
+        sea.receiveShadow = true;
+        scene.add(sea);
+
+        // --- МАКОВОЕ ПОЛЕ (дочерний объект sea — вращается вместе с ним) ---
+        const poppyFieldGroup = new THREE.Group();
+        poppyFieldGroup.visible = false;
+        sea.add(poppyFieldGroup); // <-- дочерний, не scene
+
+        // Трава — слой поверх цилиндра (в локальном пространстве sea, центр в (0,0,0))
+        const grassGeo = new THREE.CylinderGeometry(40.45, 40.45, 100, 32, 4);
+        grassGeo.rotateX(Math.PI / 2);
+        const grassMesh = new THREE.Mesh(grassGeo, matGrass);
+        // grassMesh.position = (0,0,0) — совпадает с sea
+        poppyFieldGroup.add(grassMesh);
+
+        // Бутон мака — маленькая красная сфера
+        const budGeo = new THREE.SphereGeometry(0.18, 5, 4);
+
+        // Покрываем весь цилиндр равномерно (полный круг 2π, вся длина 100)
+        (function() {
+            const R = 40.5;
+            const COUNT = 3000;
+            for (let i = 0; i < COUNT; i++) {
+                const theta = Math.random() * Math.PI * 2; // полный круг
+                const phi   = Math.random() * 100 - 50;    // вся длина цилиндра
+
+                const bud = new THREE.Mesh(budGeo, matPoppyRed);
+                const s = 0.45 + Math.random() * 0.6;
+                bud.position.set(
+                    Math.sin(theta) * R,
+                    Math.cos(theta) * R,
+                    phi
+                );
+                bud.scale.set(s, s * 1.3, s);
+                poppyFieldGroup.add(bud);
+            }
+        })();
+
+        // --- ТУМАН-ОБЛАКО (препятствие макового поля) ---
+        function makeFogCloud() {
+            const g = new THREE.Group();
+            // Несколько перекрывающихся сфер-эллипсоидов
+            const blobs = [
+                [0,   0,  0,  1.6, 0.8, 1.2],
+                [1.2, 0.3, 0, 1.1, 0.65, 0.9],
+                [-1.1,0.2, 0, 1.0, 0.6,  0.85],
+                [0.3, 0.7, 0, 0.9, 0.55, 0.75],
+            ];
+            blobs.forEach(([bx, by, bz, sx, sy, sz]) => {
+                const bGeo = new THREE.SphereGeometry(1, 7, 5);
+                const b = new THREE.Mesh(bGeo, matFog8C.clone());
+                b.position.set(bx, by, bz);
+                b.scale.set(sx, sy, sz);
+                g.add(b);
+            });
+            g.userData.type   = 'fog_cloud';
+            g.userData.pushDir = Math.random() < 0.5 ? 1 : -1; // 1=вверх, -1=вниз
+            g.userData.pushForce = 0.8 + Math.random() * 0.6;
+            return g;
+        }
+
+        // --- СНЕЖНЫЕ ЧАСТИЦЫ ---
+        let snowParticles = null;
+        function createSnow() {
+            if (snowParticles) return;
+            const snowGeo = new THREE.BufferGeometry();
+            const count = 600;
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                positions[i * 3]     = (Math.random() - 0.5) * 60;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+            }
+            snowGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const snowMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0.85 });
+            snowParticles = new THREE.Points(snowGeo, snowMat);
+            scene.add(snowParticles);
+        }
+        function removeSnow() {
+            if (snowParticles) { scene.remove(snowParticles); snowParticles = null; }
+        }
+
+        // --- ВЕТЕР (подсказки перед камнями) ---
+        // windStreaks[i] = { lines: THREE.Group, rock: rock, opacity: 0 }
+        let windStreaks = [];
+
+        // Скорость прилёта камня: он спавнится на x=15, самолёт на x≈-1.5
+        // При текущей скорости камень проходит ~16.5 единиц
+        // За 2 секунды (120 фреймов @ 60fps) он пройдёт speed*120 единиц
+        // Ветер должен появляться когда rock.position.x > порог появления
+        // Считаем порог динамически: windAppearX = спавн - speed*120
+        // Но проще: показываем ветер когда rock.position.x > WIND_LEAD_DIST от самолёта
+        // то есть когда rock.position.x > airplane.position.x + leadDist
+        // leadDist = speed * 120 (2 секунды)
+
+        function createWindStreaksForRock(rock) {
+            const group = new THREE.Group();
+            const streakCount = 6 + Math.floor(Math.random() * 5); // 6-10 линий
+
+            for (let s = 0; s < streakCount; s++) {
+                // Длина линии — случайная
+                const length = 1.2 + Math.random() * 2.0;
+                const points = [
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(-length, 0, 0)
+                ];
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                const mat = new THREE.LineBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0,
+                    linewidth: 1
+                });
+                const line = new THREE.Line(geo, mat);
+
+                // Разброс вокруг камня
+                const rockScale = (rock.scale.x + rock.scale.y + rock.scale.z) / 3;
+                const spread = rockScale * 1.5;
+                line.position.set(
+                    -(length * 0.5 + rockScale * 0.3 + Math.random() * 1.2), // впереди камня (по -X)
+                    (Math.random() - 0.5) * spread * 2,
+                    (Math.random() - 0.5) * spread * 2
+                );
+                // Небольшой наклон
+                line.rotation.z = (Math.random() - 0.5) * 0.3;
+                line.rotation.y = (Math.random() - 0.5) * 0.2;
+
+                group.add(line);
+            }
+
+            // Прикрепляем группу прямо к позиции камня (будем обновлять вручную)
+            group.position.copy(rock.position);
+            scene.add(group);
+
+            windStreaks.push({
+                group: group,
+                rock: rock,
+                opacity: 0,
+                phase: 'fadein'  // fadein → visible → fadeout → done
+            });
+        }
+
+        function updateWindStreaks(effectiveSpeed) {
+            const LEAD_FRAMES = 120; // 2 секунды @ 60fps
+            const FADE_FRAMES = 30;
+
+            for (let i = windStreaks.length - 1; i >= 0; i--) {
+                const ws = windStreaks[i];
+                const rock = ws.rock;
+
+                // Если камень уже удалён из сцены — убираем ветер
+                if (!rocks.includes(rock)) {
+                    scene.remove(ws.group);
+                    windStreaks.splice(i, 1);
+                    continue;
+                }
+
+                // Расстояние от камня до самолёта по X
+                const dist = rock.position.x - airplane.position.x;
+                // Порог появления: камень ещё далеко (2 сек хода)
+                const leadDist = effectiveSpeed * LEAD_FRAMES;
+
+                // Синхронизируем позицию ветра с камнем
+                ws.group.position.copy(rock.position);
+
+                if (dist > leadDist) {
+                    // Камень ещё за горизонтом — ветер не виден
+                    ws.opacity = 0;
+                } else if (dist > leadDist - FADE_FRAMES * effectiveSpeed) {
+                    // Фаза появления
+                    const t = 1 - (dist - (leadDist - FADE_FRAMES * effectiveSpeed)) / (FADE_FRAMES * effectiveSpeed);
+                    ws.opacity = Math.max(0, Math.min(0.55, t * 0.55));
+                } else if (dist > 2.0) {
+                    // Полностью видим — мерцаем для эффекта
+                    const flicker = 0.38 + Math.sin(Date.now() * 0.012 + i) * 0.12;
+                    ws.opacity = flicker;
+                } else {
+                    // Камень совсем близко — гасим
+                    ws.opacity = Math.max(0, ws.opacity - 0.05);
+                }
+
+                // Применяем opacity ко всем линиям
+                ws.group.children.forEach((line, li) => {
+                    // Каждая линия мерцает чуть по-разному
+                    const lineFlicker = ws.opacity * (0.7 + Math.sin(Date.now() * 0.008 + li * 1.3) * 0.3);
+                    line.material.opacity = Math.max(0, lineFlicker);
+                });
+
+                // Анимация — линии слегка двигаются вперёд по -X (эффект ветра)
+                ws.group.children.forEach((line, li) => {
+                    line.position.x -= 0.03 + li * 0.003;
+                    const rockScale = (rock.scale.x + rock.scale.y + rock.scale.z) / 3;
+                    if (line.position.x < -(rockScale * 2.5 + 2.5)) {
+                        line.position.x = -(rockScale * 0.3 + Math.random() * 0.5);
+                    }
+                });
+            }
+        }
+
+        // --- ПРЕПЯТСТВИЯ ---
+        let rocks = [];
+
+        // Геометрии для пустыни
+        const rockGeometry = new THREE.DodecahedronGeometry(1);
+
+        // Геометрии для снежной зоны
+        // Глыба льда: вытянутый октаэдр
+        function makeIceChunkGeometry() {
+            const geo = new THREE.OctahedronGeometry(1, 0);
+            // Вытянуть вверх
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                pos.setX(i, pos.getX(i) * (0.7 + Math.random() * 0.4));
+                pos.setY(i, pos.getY(i) * (1.1 + Math.random() * 0.5));
+                pos.setZ(i, pos.getZ(i) * (0.5 + Math.random() * 0.3));
+            }
+            pos.needsUpdate = true;
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // Камень снежной зоны: додекаэдр с небольшим сжатием
+        function makeSnowRockGeometry() {
+            const geo = new THREE.DodecahedronGeometry(1, 0);
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                pos.setY(i, pos.getY(i) * 0.75);
+            }
+            pos.needsUpdate = true;
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // Создаём несколько заготовок геометрий льда
+        const iceGeos = [makeIceChunkGeometry(), makeIceChunkGeometry(), makeIceChunkGeometry()];
+        const snowRockGeos = [makeSnowRockGeometry(), makeSnowRockGeometry()];
+
+        function spawnObstacle(zone) {
+            if (isGameOver) return;
+
+            if (zone === ZONE_DESERT) {
+                // --- Оригинальный камень ---
+                const rock = new THREE.Mesh(rockGeometry, matRed);
+                const randomY = Math.random() * 7 - 1;
+                rock.position.set(15, randomY, 0);
+                const scale = 0.5 + Math.random() * 0.5;
+                rock.scale.set(scale, scale, scale);
+                rock.rotation.set(Math.random(), Math.random(), Math.random());
+                rock.castShadow = true;
+                rock.userData.type = 'desert_rock';
+                scene.add(rock);
+                rocks.push(rock);
+                createWindStreaksForRock(rock);
+
+            } else if (zone === ZONE_POPPY) {
+                // --- Маковое поле: камни + туман-облака ---
+                const isFogCloud = Math.random() < 0.45; // 45% туман
+                if (isFogCloud) {
+                    const fog = makeFogCloud();
+                    const randomY = Math.random() * 6;
+                    fog.position.set(17, randomY, 0);
+                    const s = 0.9 + Math.random() * 0.7;
+                    fog.scale.set(s, s * 0.7, s * 0.8);
+                    scene.add(fog);
+                    rocks.push(fog);
+                } else {
+                    // Обычный камень из пустыни
+                    const rock = new THREE.Mesh(rockGeometry, matRed);
+                    const randomY = Math.random() * 7 - 1;
+                    rock.position.set(15, randomY, 0);
+                    const scale = 0.5 + Math.random() * 0.5;
+                    rock.scale.set(scale, scale, scale);
+                    rock.rotation.set(Math.random(), Math.random(), Math.random());
+                    rock.castShadow = true;
+                    rock.userData.type = 'poppy_rock';
+                    scene.add(rock);
+                    rocks.push(rock);
+                    createWindStreaksForRock(rock);
+                }
+
+            } else {
+                // --- Снежная зона ---
+                const isIce = Math.random() < 0.6;
+
+                let mat, geo;
+                if (isIce) {
+                    mat = Math.random() < 0.5 ? matIce : matIceDark;
+                    geo = iceGeos[Math.floor(Math.random() * iceGeos.length)];
+                } else {
+                    mat = matSnowRock;
+                    geo = snowRockGeos[Math.floor(Math.random() * snowRockGeos.length)];
+                }
+
+                const obstacle = new THREE.Mesh(geo, mat);
+                // Более широкий диапазон по Y — от -1 до 6, чтобы было проще увернуться
+                // Ограничиваем середину — дырка в центре
+                let randomY;
+                if (Math.random() < 0.5) {
+                    randomY = -1 + Math.random() * 2.5;       // низко
+                } else {
+                    randomY = 4 + Math.random() * 2.5;        // высоко
+                }
+
+                obstacle.position.set(15, randomY, 0);
+                const scaleXZ = 0.5 + Math.random() * 0.6;
+                const scaleY  = isIce ? scaleXZ * (1.2 + Math.random() * 0.8) : scaleXZ;
+                obstacle.scale.set(scaleXZ, scaleY, scaleXZ);
+                obstacle.rotation.set(Math.random() * 0.3, Math.random(), Math.random() * 0.3);
+                obstacle.castShadow = true;
+                obstacle.userData.type = isIce ? 'ice' : 'snow_rock';
+                scene.add(obstacle);
+                rocks.push(obstacle);
+                createWindStreaksForRock(obstacle);
+            }
+        }
+
+        // --- ПЕРЕМЕННЫЕ ИГРЫ ---
+        let distance = 0;
+        let lives = 3;
+        let level = 1;
+        let isGameOver = false;
+        let isPaused = false;
+        let bestScore = parseInt(localStorage.getItem('lpp_best') || '0');
+        let planeTargetY = 2;
+        let gameSpeed = 0.15;
+        let rockSpawnTimer = 0;
+        let invulnerableTime = 0;
+        let currentZone = ZONE_DESERT;
+        let zoneLabelTimer = 0;
+
+        const maxY = 6;
+        const minY = -1;
+        const moveStep = 2.5;
+
+        // Плавный переход зон
+        let zoneTransition = 0;        // 0=пустыня → 1=снег
+        let zoneTransitionPoppy = 0;   // 0=нет → 1=маки
+        const TRANSITION_SPEED = 0.008;
+
+        function lerpColor(c1, c2, t) {
+            return new THREE.Color(
+                c1.r + (c2.r - c1.r) * t,
+                c1.g + (c2.g - c1.g) * t,
+                c1.b + (c2.b - c1.b) * t
+            );
+        }
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function updateZoneVisuals(tSnow, tPoppy) {
+            const dc = zoneColors.desert, sc = zoneColors.snow, pc = zoneColors.poppy;
+
+            // Снег перекрывает пустыню, маки — отдельный переход
+            let bg, fogC;
+            if (tPoppy > 0) {
+                bg   = lerpColor(dc.bg,   pc.bg,   tPoppy);
+                fogC = lerpColor(dc.fog,  pc.fog,  tPoppy);
+            } else {
+                bg   = lerpColor(dc.bg,   sc.bg,   tSnow);
+                fogC = lerpColor(dc.fog,  sc.fog,  tSnow);
+            }
+            scene.background = bg;
+            scene.fog.color  = fogC;
+
+            // Трава цилиндра
+            if (tPoppy > 0) {
+                const gR = ((pc.sea >> 16) & 0xff) / 255;
+                const gG = ((pc.sea >>  8) & 0xff) / 255;
+                const gB = ( pc.sea        & 0xff) / 255;
+                const dR = ((dc.sea >> 16) & 0xff) / 255;
+                const dG = ((dc.sea >>  8) & 0xff) / 255;
+                const dB = ( dc.sea        & 0xff) / 255;
+                matSea.color.setRGB(lerp(dR,gR,tPoppy), lerp(dG,gG,tPoppy), lerp(dB,gB,tPoppy));
+            } else {
+                const seaR = ((dc.sea >> 16) & 0xff) / 255;
+                const seaG = ((dc.sea >>  8) & 0xff) / 255;
+                const seaB = ( dc.sea        & 0xff) / 255;
+                const seaSR = ((sc.sea >> 16) & 0xff) / 255;
+                const seaSG = ((sc.sea >>  8) & 0xff) / 255;
+                const seaSB = ( sc.sea        & 0xff) / 255;
+                matSea.color.setRGB(lerp(seaR,seaSR,tSnow), lerp(seaG,seaSG,tSnow), lerp(seaB,seaSB,tSnow));
+            }
+
+            // Видимость макового поля
+            poppyFieldGroup.visible = tPoppy > 0.05;
+
+            // UI цвет
+            const ui = document.getElementById('ui');
+            if (tPoppy > 0.5) {
+                ui.style.color = pc.ui;
+                document.querySelectorAll('.distance-val').forEach(e => e.style.color = pc.uiAccent);
+                document.getElementById('hearts').style.color = pc.uiAccent;
+            } else if (tSnow > 0.5) {
+                ui.style.color = sc.ui;
+                document.querySelectorAll('.distance-val').forEach(e => e.style.color = sc.uiAccent);
+                document.getElementById('hearts').style.color = sc.uiAccent;
+            } else {
+                ui.style.color = dc.ui;
+                document.querySelectorAll('.distance-val').forEach(e => e.style.color = dc.uiAccent);
+                document.getElementById('hearts').style.color = '#ba3c31';
+            }
+        }
+
+        // --- УПРАВЛЕНИЕ ---
+        document.addEventListener('keydown', (e) => {
+            if (!window.gameStarted) return;
+            if (isGameOver) return;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                planeTargetY = Math.min(planeTargetY + moveStep, maxY);
+            } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                planeTargetY = Math.max(planeTargetY - moveStep, minY);
+            }
+        });
+
+        let touchStartY = 0;
+        document.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: false });
+        document.addEventListener('touchend', (e) => {
+            if (!window.gameStarted) return;
+            if (isGameOver) return;
+            let touchEndY = e.changedTouches[0].clientY;
+            let diff = touchStartY - touchEndY;
+            if (diff > 30) {
+                planeTargetY = Math.min(planeTargetY + moveStep, maxY);
+            } else if (diff < -30) {
+                planeTargetY = Math.max(planeTargetY - moveStep, minY);
+            }
+        }, { passive: false });
+        document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+
+        // --- СТОЛКНОВЕНИЯ ---
+        function checkCollisions() {
+            if (invulnerableTime > 0) return;
+            const planeBox = new THREE.Box3().setFromObject(airplane);
+            planeBox.expandByScalar(-0.2);
+
+            for (let i = 0; i < rocks.length; i++) {
+                const obj = rocks[i];
+
+                if (obj.userData.type === 'fog_cloud') {
+                    // Туман: проверяем расстояние, толкаем вверх/вниз
+                    const dx = airplane.position.x - obj.position.x;
+                    const dy = airplane.position.y - obj.position.y;
+                    const dz = airplane.position.z - obj.position.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    if (dist < 2.2) {
+                        const push = obj.userData.pushDir * obj.userData.pushForce * 0.06;
+                        planeTargetY = Math.max(minY, Math.min(maxY, planeTargetY + push));
+                    }
+                    continue;
+                }
+
+                const rockBox = new THREE.Box3().setFromObject(obj);
+                const shrink = (obj.userData.type === 'desert_rock' || obj.userData.type === 'poppy_rock') ? -0.45
+                             : obj.userData.type === 'ice'  ? -0.35
+                             : -0.25;
+                rockBox.expandByScalar(shrink);
+
+                if (planeBox.intersectsBox(rockBox)) {
+                    hitAirplane();
+                    break;
+                }
+            }
+        }
+
+        function hitAirplane() {
+            lives--;
+            updateHearts();
+            if (lives <= 0) {
+                isGameOver = true;
+                // Обновляем рекорд
+                const score = Math.floor(distance);
+                if (score > bestScore) {
+                    bestScore = score;
+                    localStorage.setItem('lpp_best', bestScore);
+                }
+                document.getElementById('go-score').textContent = 'Дистанция: ' + score;
+                document.getElementById('go-best').textContent  = 'Рекорд: ' + bestScore;
+                document.getElementById('game-over').style.display = 'block';
+            } else {
+                invulnerableTime = 100;
+            }
+        }
+
+        function updateHearts() {
+            const svgHeart = `<svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-right:2px"><path d="M11 18C11 18 2 12.5 2 6.5C2 4 4 2 6.5 2C8.5 2 10 3.5 11 5C12 3.5 13.5 2 15.5 2C18 2 20 4 20 6.5C20 12.5 11 18 11 18Z" fill="currentColor"/></svg>`;
+            document.getElementById('hearts').innerHTML = svgHeart.repeat(lives);
+        }
+
+        // --- МЕТКА ЗОНЫ ---
+        function showZoneLabel(html, cls) {
+            const el = document.getElementById('zone-label');
+            el.innerHTML = html;
+            el.className = cls || '';
+            el.style.opacity = '1';
+            zoneLabelTimer = 180;
+        }
+
+        window.resetGame = function() {
+            rocks.forEach(rock => scene.remove(rock));
+            rocks = [];
+            windStreaks.forEach(ws => scene.remove(ws.group));
+            windStreaks = [];
+            distance = 0;
+            lives = 3;
+            level = 1;
+            gameSpeed = 0.15;
+            planeTargetY = 2;
+            airplane.position.y = 2;
+            airplane.rotation.z = 0;
+            isGameOver = false;
+            isPaused = false;
+            currentZone = ZONE_DESERT;
+            zoneTransition = 0;
+            zoneTransitionPoppy = 0;
+            snowZoneEntered = false;
+            poppyZoneEntered = false;
+            poppyFieldGroup.visible = false;
+            updateZoneVisuals(0, 0);
+            removeSnow();
+            updateHearts();
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('zone-label').style.opacity = '0';
+            document.getElementById('zone-label').className = '';
+            document.getElementById('pause-overlay').classList.remove('active');
+        };
+
+        // --- АНИМАЦИЯ И ЛОГИКА ---
+        let snowZoneEntered  = false;
+        let poppyZoneEntered = false;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isGameOver && !isPaused) {
+                propeller.rotation.x += 0.5;
+
+                airplane.position.y += (planeTargetY - airplane.position.y) * 0.1;
+                const targetRotationZ = (planeTargetY - airplane.position.y) * 0.15;
+                airplane.rotation.z += (targetRotationZ - airplane.rotation.z) * 0.1;
+
+                if (invulnerableTime > 0) {
+                    invulnerableTime--;
+                    airplane.visible = (invulnerableTime % 10 < 5);
+                } else {
+                    airplane.visible = true;
+                }
+
+                sea.rotation.z += gameSpeed * 0.05;
+
+                // --- Определение зоны ---
+                if (distance >= POPPY_START) {
+                    currentZone = ZONE_POPPY;
+                    if (!poppyZoneEntered) {
+                        poppyZoneEntered = true;
+                        showZoneLabel('МАКОВОЕ ПОЛЕ <span class="poppy-flower">🌸</span>', 'poppy-label');
+                        removeSnow();
+                    }
+                } else if (distance >= SNOW_START) {
+                    currentZone = ZONE_SNOW;
+                    if (!snowZoneEntered) {
+                        snowZoneEntered = true;
+                        showZoneLabel('* СНЕЖНАЯ ЗОНА *');
+                        createSnow();
+                    }
+                } else {
+                    currentZone = ZONE_DESERT;
+                }
+
+                // Плавные переходы
+                const targetSnow  = (currentZone === ZONE_SNOW)  ? 1 : 0;
+                const targetPoppy = (currentZone === ZONE_POPPY) ? 1 : 0;
+                zoneTransition      += (targetSnow  - zoneTransition)      * TRANSITION_SPEED * 3;
+                zoneTransitionPoppy += (targetPoppy - zoneTransitionPoppy) * TRANSITION_SPEED * 3;
+                zoneTransition      = Math.max(0, Math.min(1, zoneTransition));
+                zoneTransitionPoppy = Math.max(0, Math.min(1, zoneTransitionPoppy));
+                updateZoneVisuals(zoneTransition, zoneTransitionPoppy);
+
+                // Эффективная скорость
+                const effectiveSpeed = currentZone === ZONE_SNOW
+                    ? Math.max(gameSpeed * 0.72, 0.10)
+                    : currentZone === ZONE_POPPY
+                    ? Math.max(gameSpeed * 0.85, 0.12)
+                    : gameSpeed;
+
+                // Снег
+                if (snowParticles) {
+                    const sp = snowParticles.geometry.attributes.position;
+                    for (let i = 0; i < sp.count; i++) {
+                        sp.setY(i, sp.getY(i) - 0.04);
+                        sp.setX(i, sp.getX(i) - 0.01);
+                        if (sp.getY(i) < -15) sp.setY(i, 15);
+                        if (sp.getX(i) < -30) sp.setX(i, 30);
+                    }
+                    sp.needsUpdate = true;
+                }
+
+                // Метка зоны
+                if (zoneLabelTimer > 0) {
+                    zoneLabelTimer--;
+                    if (zoneLabelTimer === 0) {
+                        document.getElementById('zone-label').style.opacity = '0';
+                    }
+                }
+
+                // Спавн
+                rockSpawnTimer++;
+                const spawnInterval = currentZone === ZONE_SNOW
+                    ? 140 / (effectiveSpeed * 5)
+                    : currentZone === ZONE_POPPY
+                    ? 120 / (effectiveSpeed * 5)
+                    : 100 / (effectiveSpeed * 5);
+
+                if (rockSpawnTimer > spawnInterval) {
+                    spawnObstacle(currentZone);
+                    rockSpawnTimer = 0;
+                }
+
+                // Движение препятствий
+                for (let i = rocks.length - 1; i >= 0; i--) {
+                    let rock = rocks[i];
+
+                    const speed = (rock.userData.type === 'snow_rock')
+                        ? effectiveSpeed * 0.7
+                        : effectiveSpeed;
+
+                    rock.position.x -= speed;
+
+                    if (rock.userData.type === 'fog_cloud') {
+                        // Туман: медленно пульсирует по Y, толкает самолёт при касании
+                        rock.position.y += Math.sin(Date.now() * 0.002 + i) * 0.012;
+                        // Прозрачность пульсирует
+                        rock.children.forEach(b => {
+                            b.material.opacity = 0.35 + Math.sin(Date.now() * 0.003 + i * 0.7) * 0.15;
+                        });
+                    } else {
+                        rock.rotation.x += 0.01;
+                        rock.rotation.y += 0.015;
+                    }
+
+                    if (rock.position.x < -12) {
+                        scene.remove(rock);
+                        rocks.splice(i, 1);
+                    }
+                }
+
+                // Ветер
+                updateWindStreaks(effectiveSpeed);
+
+                distance += gameSpeed;
+                document.getElementById('dist-ui').innerText = Math.floor(distance);
+
+                if (distance > level * 500) {
+                    level++;
+                    gameSpeed += 0.02;
+                    document.getElementById('level-ui').innerText = level;
+                }
+
+                checkCollisions();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ====== 3D ГЛАВНОЕ МЕНЮ ======
+        const audioMenu = document.getElementById('audio-menu');
+        const audioSpin = document.getElementById('audio-spin');
+        audioMenu.volume = 0.55;
+        audioSpin.volume  = 0.08;
+
+        // Показать меню (при старте и после game over)
+        function showMenu() {
+            const menu = document.getElementById('main-menu');
+            menu.style.display = '';
+            menu.style.opacity = '0';
+            menu.classList.remove('hide');
+            setTimeout(() => { menu.style.opacity = '1'; }, 20);
+
+            // Кнопка паузы — прячем
+            document.getElementById('pause-btn').style.display = 'none';
+
+            // Обновляем рекорд в меню
+            const best = parseInt(localStorage.getItem('lpp_best') || '0');
+            const el = document.getElementById('menu-best');
+            el.textContent = best > 0 ? 'РЕКОРД: ' + best : '';
+
+            // Музыка меню
+            audioSpin.pause();
+            audioSpin.currentTime = 0;
+            audioMenu.play().catch(() => {});
+
+            // Перезапуск 3D-анимации меню
+            if (window._menuLoop) window._menuLoop.running = true;
+        }
+
+        (function() {
+            const canvas = document.getElementById('menu-canvas');
+            const W = () => window.innerWidth, H = () => window.innerHeight;
+
+            const mScene = new THREE.Scene();
+            mScene.background = new THREE.Color(0xded2b8);
+            mScene.fog = new THREE.Fog(0xded2b8, 12, 55);
+
+            const mCamera = new THREE.PerspectiveCamera(55, W()/H(), 0.1, 120);
+            mCamera.position.set(0, 1.5, 14);
+
+            const mRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            mRenderer.setSize(W(), H());
+            mRenderer.shadowMap.enabled = true;
+            mRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            mScene.add(new THREE.HemisphereLight(0xffeedd, 0x334455, 0.9));
+            const mSun = new THREE.DirectionalLight(0xffffff, 1.0);
+            mSun.position.set(8, 18, 12);
+            mSun.castShadow = true;
+            mScene.add(mSun);
+            mScene.add(new THREE.AmbientLight(0xded2b8, 0.5));
+
+            const mRed   = new THREE.MeshPhongMaterial({ color: 0xba3c31, flatShading: true });
+            const mDark  = new THREE.MeshPhongMaterial({ color: 0x32221e, flatShading: true });
+            const mSeaM  = new THREE.MeshPhongMaterial({ color: 0x6d8b82, flatShading: true });
+            const mCloud = new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, transparent: true, opacity: 0.88 });
+            const mRockM = new THREE.MeshPhongMaterial({ color: 0xba3c31, flatShading: true });
+
+            function buildMenuPlane() {
+                const g = new THREE.Group();
+                const add = (geo, mat, px,py,pz) => {
+                    const m = new THREE.Mesh(geo, mat);
+                    m.position.set(px||0,py||0,pz||0);
+                    m.castShadow = true;
+                    g.add(m);
+                    return m;
+                };
+                add(new THREE.BoxGeometry(4,1.2,1.2),   mRed,  0,0,0);
+                add(new THREE.BoxGeometry(0.8,0.4,0.8), mDark, 0.5,0.8,0);
+                add(new THREE.BoxGeometry(1.2,0.2,4.5), mRed,  0.5,0,0);
+                add(new THREE.BoxGeometry(0.5,1,0.2),   mRed, -1.8,0.5,0);
+                add(new THREE.BoxGeometry(0.6,0.1,1.5), mRed, -1.8,0.1,0);
+                add(new THREE.BoxGeometry(0.4,0.6,0.6), mDark, 2,0,0);
+                const prop = add(new THREE.BoxGeometry(0.2,2.5,0.2), mDark, 2.1,0,0);
+                g.scale.set(0.65,0.65,0.65);
+                return { group: g, propeller: prop };
+            }
+
+            const { group: mPlane, propeller: mProp } = buildMenuPlane();
+            mPlane.position.set(0, 1.2, 0);
+            mScene.add(mPlane);
+
+            // Море
+            const mSeaGeo = new THREE.CylinderGeometry(50,50,120,32,12);
+            mSeaGeo.rotateX(Math.PI/2);
+            const mSeaPos = mSeaGeo.attributes.position;
+            for (let i=0; i<mSeaPos.count; i++)
+                mSeaPos.setY(i, mSeaPos.getY(i) + (Math.random()*1.6-0.8));
+            const mSeaMesh = new THREE.Mesh(mSeaGeo, mSeaM);
+            mSeaMesh.position.set(0,-46,-8);
+            mSeaMesh.receiveShadow = true;
+            mScene.add(mSeaMesh);
+
+            // Облака
+            function makeCloud(x,y,z,s) {
+                const g = new THREE.Group();
+                [[0,0,0,1.1],[-1.1,0.2,0,0.8],[1.1,0.1,0,0.85],[0.4,0.7,0,0.7],[-0.5,0.65,0,0.65]]
+                    .forEach(([bx,by,bz,r]) => {
+                        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(r,0), mCloud);
+                        m.position.set(bx,by,bz); m.castShadow=true; g.add(m);
+                    });
+                g.position.set(x,y,z); g.scale.set(s,s*0.65,s*0.8);
+                return g;
+            }
+            const clouds = [
+                makeCloud(-8,4,-6,1.6), makeCloud(7,5.5,-8,1.9), makeCloud(-4,6.5,-10,1.3),
+                makeCloud(3,3.2,-4,1.1), makeCloud(-10,2.5,-4,1.4), makeCloud(9,2.0,-3,1.0),
+            ];
+            clouds.forEach(c => mScene.add(c));
+
+            // Камни-фон
+            const mRocks = [];
+            for (let i=0; i<6; i++) {
+                const geo = new THREE.DodecahedronGeometry(0.35+Math.random()*0.45, 0);
+                const r = new THREE.Mesh(geo, mRockM);
+                r.position.set((Math.random()-0.5)*36, Math.random()*7-1, Math.random()*3-4);
+                r.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+                r.userData.speed = 0.04+Math.random()*0.03;
+                r.castShadow = true;
+                mRocks.push(r);
+                mScene.add(r);
+            }
+
+            let mT = 0;
+            const loop = { running: true };
+            window._menuLoop = loop;
+
+            function animateMenu() {
+                requestAnimationFrame(animateMenu);
+                if (!loop.running) return;
+
+                mT += 0.016;
+                mProp.rotation.x += 0.45;
+                mPlane.position.x = Math.sin(mT*0.22)*2.5;
+                mPlane.position.y = 1.2 + Math.sin(mT*0.38)*0.6;
+                mPlane.rotation.z = Math.sin(mT*0.38)*0.12;
+                mPlane.rotation.y = Math.sin(mT*0.15)*0.08;
+                mSeaMesh.rotation.z += 0.002;
+                clouds.forEach((c,i) => {
+                    c.position.x += 0.008*(i%2===0?1:-1);
+                    if (c.position.x> 16) c.position.x=-16;
+                    if (c.position.x<-16) c.position.x= 16;
+                });
+                mRocks.forEach(r => {
+                    r.position.x -= r.userData.speed;
+                    r.rotation.x += 0.008; r.rotation.y += 0.012;
+                    if (r.position.x < -18) { r.position.x=18; r.position.y=Math.random()*7-1; }
+                });
+                mCamera.position.x = Math.sin(mT*0.08)*0.4;
+                mCamera.position.y = 1.5 + Math.sin(mT*0.12)*0.2;
+                mCamera.lookAt(0,1.5,0);
+                mRenderer.render(mScene, mCamera);
+            }
+            animateMenu();
+
+            window.addEventListener('resize', () => {
+                mCamera.aspect = W()/H();
+                mCamera.updateProjectionMatrix();
+                mRenderer.setSize(W(),H());
+            });
+
+            let gameStarted = false;
+
+            window.startGame = function() {
+                if (gameStarted) {
+                    // Повторный запуск после возврата в меню
+                    window.resetGame();
+                    gameStarted = true;
+                    window.gameStarted = true;
+                } else {
+                    gameStarted = true;
+                    window.gameStarted = true;
+                }
+                loop.running = false;
+
+                const menu = document.getElementById('main-menu');
+                menu.classList.add('hide');
+                setTimeout(() => { menu.style.display = 'none'; }, 950);
+
+                // Музыка: стоп меню, старт пропеллера
+                audioMenu.pause();
+                audioSpin.play().catch(() => {});
+
+                // Кнопка паузы
+                document.getElementById('pause-btn').style.display = 'flex';
+            };
+
+            document.getElementById('start-btn').addEventListener('click', () => {
+                // Разрешаем повторный запуск
+                gameStarted = false;
+                window.startGame();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (window._menuVisible() && (e.key===' '||e.key==='Enter')) {
+                    gameStarted = false;
+                    window.startGame();
+                }
+            });
+
+            // Первый клик на страницу — запустить музыку меню
+            document.addEventListener('pointerdown', () => {
+                if (audioMenu.paused && window._menuVisible()) audioMenu.play().catch(()=>{});
+            }, { once: true });
+
+        })();
+
+        window._menuVisible = function() {
+            const m = document.getElementById('main-menu');
+            return m && m.style.display !== 'none' && !m.classList.contains('hide');
+        };
+
+        // Кнопка "В меню" из game over
+        document.getElementById('go-menu-btn').addEventListener('click', () => {
+            window.resetGame();
+            window.gameStarted = false;
+            showMenu();
+        });
+
+        // ====== ПАУЗА ======
+        document.getElementById('pause-btn').addEventListener('click', () => {
+            isPaused = true;
+            document.getElementById('pause-overlay').classList.add('active');
+            audioSpin.pause();
+        });
+        document.getElementById('resume-btn').addEventListener('click', () => {
+            isPaused = false;
+            document.getElementById('pause-overlay').classList.remove('active');
+            audioSpin.play().catch(() => {});
+        });
+        document.getElementById('pause-to-menu-btn').addEventListener('click', () => {
+            isPaused = false;
+            window.resetGame();
+            window.gameStarted = false;
+            showMenu();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && window.gameStarted && !isGameOver) {
+                if (isPaused) {
+                    isPaused = false;
+                    document.getElementById('pause-overlay').classList.remove('active');
+                    audioSpin.play().catch(() => {});
+                } else {
+                    isPaused = true;
+                    document.getElementById('pause-overlay').classList.add('active');
+                    audioSpin.pause();
+                }
+            }
+        });
+
+        // ====== ЗВУК ПРОПЕЛЛЕРА при game over ======
+        let _gameOverSoundStopped = false;
+        setInterval(() => {
+            if (isGameOver && !_gameOverSoundStopped) {
+                _gameOverSoundStopped = true;
+                audioSpin.pause();
+            } else if (!isGameOver && _gameOverSoundStopped && window.gameStarted) {
+                _gameOverSoundStopped = false;
+                audioSpin.play().catch(() => {});
+            }
+        }, 200);
+
+        // Первый показ меню
+        showMenu();
+
+        updateHearts();
+        animate();
+    </script>
+</body>
+</html>
